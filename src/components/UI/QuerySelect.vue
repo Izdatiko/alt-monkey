@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const emit = defineEmits(['querySelect']) 
 
+
 const chooseWords = (query: string) => {
   emit('querySelect', query)
 }

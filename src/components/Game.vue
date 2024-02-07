@@ -5,24 +5,42 @@ import IconLoading from "@/components/Icon/Loading.vue";
 
 import { useAxios } from "@/composables/useAxios";
 
-import { ref } from "vue";
+import { ref, computed, watch } from "vue";
+
+import { useMagicKeys } from '@vueuse/core'
+
+const keys = useMagicKeys({ reactive: true })
+
+
 
 const isColumn = ref(false);
 const query = ref<string>('10');
 
-const chooseWords = (e: string) => {
-  query.value = e;
-  console.log(query.value);
-  fetchData();
+const { data, error, isLoading, fetchData } = useAxios(
+  `/word?number=${query.value}`,
+  "get",
+  );
+  
+const words = ref<any>(data);
+
+const chooseWords = async(e: string) => {
+  const {data, fetchData} = useAxios(`/word?number=${e}`, 'get')
+  await fetchData()
+  words.value = data;
 }
 
-const { data: words, error, isLoading, fetchData } = useAxios(
-  `/word`,
-  "get",
-  {
-    number: query.value
-  }
-);
+const letter = computed(() => {
+  return words.value.some(word => word.some(letters => keys[letters]
+  ));
+})
+
+watch(letter,
+() => {
+  console.log(letter.value)
+})
+
+
+fetchData()
 </script>
 
 <template>
@@ -31,18 +49,7 @@ const { data: words, error, isLoading, fetchData } = useAxios(
         <div v-if="isLoading">
           <IconLoading />
         </div>
-        <!-- <UIQuerySelect @query-select="setQuery" v-if="!isLoading" /> -->
-        <div class="query">
-          <button @click="chooseWords('20')">
-            30
-          </button>
-          <button @click="chooseWords('40')">
-            40
-          </button>
-          <button @click="chooseWords('80')">
-            80
-          </button>
-        </div>
+        <UIQuerySelect @query-select="chooseWords" v-if="!isLoading" />
         <button
           v-if="!isLoading"
           @click="isColumn = !isColumn"
@@ -55,12 +62,13 @@ const { data: words, error, isLoading, fetchData } = useAxios(
         </div>
         <div :class="isColumn ? 'game__wrapper-grid' : 'game__wrapper-flex'">
           <div
-            class="flex none-select j-center"
+            class="game__word"
             v-for="(word, index) in words"
             :key="index"
           >
-            <div v-for="(letter, letterIndex) in word" :key="letterIndex">
-              <p>{{ letter }}</p>
+          {{ word }}
+            <div class="game__letter" v-for="(letter, letterIndex) in word" :key="letterIndex">
+              {{ letter }}
             </div>
           </div>
         </div>
@@ -79,6 +87,17 @@ const { data: words, error, isLoading, fetchData } = useAxios(
 .game {
   p {
     color: $gray;
+  }
+  &__word {
+    display: flex;
+    justify-content: center;
+    user-select: none;
+    color: $gray;
+  }
+  &__letter {
+    &-active {
+      border-left: solid 1px $gray;
+    }
   }
   &__wrapper {
     height: 90vh;
